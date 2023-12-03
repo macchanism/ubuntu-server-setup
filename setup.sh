@@ -13,6 +13,8 @@ function getCurrentDir() {
 function includeDependencies() {
     # shellcheck source=./setupLibrary.sh
     source "${current_dir}/setupLibrary.sh"
+    # shellcheck source=./MyLibrary.sh
+    source "${current_dir}/MyLibrary.sh"
 }
 
 current_dir=$(getCurrentDir)
@@ -53,6 +55,14 @@ function main() {
     # UFWの設定
     setupUfw
 
+    # Change SSH port num.
+    echo -ne "Enter the new SSH port num. (Default 22): " >&3
+    read -r ssh_port
+    if [[ "${ssh_port}" =~ ^[0-9]+$ ]] && [ $ssh_port -ne 22 ]; then
+        changeSSHPort "${ssh_port}"
+        changeUfw "${ssh_port}"
+    fi
+
     # Swapの設定
     if ! hasSwap; then
         setupSwap
@@ -67,6 +77,12 @@ function main() {
 
     # SSHサービスの再起動
     sudo service ssh restart
+
+    # Private (Run private/*.sh)
+    for private_script in `find private -maxdepth 1 | grep '\.sh$'`; do
+        chmod +x "${private_script}"
+        $private_script
+    done
 
     cleanup
 
@@ -105,10 +121,10 @@ function logTimestamp() {
 
 # タイムゾーンの設定
 function setupTimezone() {
-    echo -ne "Enter the timezone for the server (Default is 'Asia/Singapore'):\n" >&3
+    echo -ne "Enter the timezone for the server (Default is 'Asia/Tokyo'):\n" >&3
     read -r timezone
     if [ -z "${timezone}" ]; then
-        timezone="Asia/Singapore"
+        timezone="Asia/Tokyo"
     fi
     setTimezone "${timezone}"
     echo "Timezone is set to $(cat /etc/timezone)" >&3

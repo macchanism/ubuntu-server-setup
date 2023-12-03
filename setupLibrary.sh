@@ -57,11 +57,12 @@ function execAsUser() {
 function changeSSHConfig() {
     sudo sed -re 's/^(\#?)(PasswordAuthentication)([[:space:]]+)yes/\2\3no/' -i."$(echo 'old')" /etc/ssh/sshd_config
     sudo sed -re 's/^(\#?)(PermitRootLogin)([[:space:]]+)(.*)/PermitRootLogin no/' -i /etc/ssh/sshd_config
+    sudo sed -re 's/^(\#?)(AuthorizedKeysFile)([[:space:]]+)(.*)/AuthorizedKeysFile %h\/.ssh\/authorized_keys/' -i /etc/ssh/sshd_config
 }
 
 # Setup the Uncomplicated Firewall
 function setupUfw() {
-    sudo apt-get install ufw
+    sudo apt install ufw
     sudo ufw allow OpenSSH
     yes y | sudo ufw enable
 }
@@ -125,11 +126,13 @@ function setTimezone() {
 function configureNTP() {
     ubuntu_version="$(lsb_release -sr)"
 
+    sudo apt --assume-yes install systemd-timesyncd
+
     if [[ $(bc -l <<< "${ubuntu_version} >= 20.04") -eq 1 ]]; then
         sudo systemctl restart systemd-timesyncd
     else
-        sudo apt-get update
-        sudo apt-get --assume-yes install ntp
+        #sudo apt update
+        sudo apt --assume-yes install ntp
         
         # force NTP to sync
         sudo service ntp stop
